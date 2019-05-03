@@ -1,0 +1,28 @@
+FROM golang:1.12-alpine as builder
+
+RUN apk add make git gcc libc-dev
+
+WORKDIR /go/src/github.com/Factom-Asset-Tokens/fatd
+# Use go mod in gopath
+ENV GO111MODULE=on
+
+# Populate all the source code
+COPY . .
+
+
+# For some reason, the resulting fatd from make does
+# not work. Might look into it later. It only does not work
+# with alpine I think.
+# TODO: Fix the make usage, and get the revisions compiled in
+# RUN make
+RUN go build
+WORKDIR /go/src/github.com/Factom-Asset-Tokens/fatd/cli
+RUN go build
+
+# Now squash everything
+FROM alpine:3.7
+
+COPY --from=builder /go/src/github.com/Factom-Asset-Tokens/fatd/fatd /go/bin/fatd
+COPY --from=builder /go/src/github.com/Factom-Asset-Tokens/fatd/cli/cli /go/bin/fat-cli
+
+ENTRYPOINT ["/go/bin/fatd"]
